@@ -22,14 +22,14 @@ function init() {
     camera.lookAt( 0, 0, 0 );
     
     scene = new THREE.Scene();
-    scene.background = new THREE.Color('#7f7f85');
+    scene.background = new THREE.Color('#000000');
     let p = new PointSet();
     interpolatedPoints = new PointSet(0.5, 0x0000ff);
     pointSet = p;
-    p.createPoint( -10, -10);
     p.createPoint( 10, 10);
-    p.createPoint( 30, -10);
-    p.createPoint( 30, 10);
+    p.createPoint( 4.3, 24.6);
+    p.createPoint( 28.2, 3.62);
+    p.createPoint( 50, 30);
     scene.add(p.group);
     scene.add(interpolatedPoints.group);
     
@@ -57,7 +57,7 @@ function animate() {
 
     if (interpolatedPoints != null)
     {
-        spiral();   
+        spiralMap();   
     }
     requestAnimationFrame( animate );
     render();
@@ -102,8 +102,8 @@ function onMouseDown(e) {
     if (intersected) {
         renderer.domElement.addEventListener('mousemove', mouseDragPoint);
     }
-
 }
+
 function mouseDragPoint(e){
     if (pointSelected != null){
         
@@ -111,7 +111,7 @@ function mouseDragPoint(e){
         mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
         let target = new THREE.Vector3();
         raycaster.setFromCamera( mouse, camera );    
-        raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,0,-1), 10), target)
+        raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,0,-1), 0), target)
         pointSelected.position.copy(target);
     }
 }
@@ -123,8 +123,10 @@ function onMouseUp(e) {
 function spiralAngle(A, B, C, D) {
     let v1 = new THREE.Vector3().subVectors(B, A);
     let v2 = new THREE.Vector3().subVectors(D, C);
-    
-    return v1.angleTo(v2);
+    let a = v1.angleTo(v2);
+    if (v1.cross(v2).dot(new THREE.Vector3(0,0,1)) < 0)
+        a = -a;
+    return a
 }
 
 function spiralScale(A, B, C, D) {
@@ -168,6 +170,21 @@ function spiral(){
     drawSpiral(interpolatedPoints, params.a, params.z, params.c, pointSet.getPoint(0), pointSet.getPoint(1));
     
 }
+function spiralMap(){
+    interpolatedPoints.deleteAll();
+    let A = pointSet.getPoint(0);
+    let B = pointSet.getPoint(1);
+    let C = pointSet.getPoint(2);
+    let D = pointSet.getPoint(3);
+    let params1 = spiralParams(pointSet.getPoint(0), pointSet.getPoint(1), pointSet.getPoint(2), pointSet.getPoint(3))
+    let params2 = spiralParams(pointSet.getPoint(0), pointSet.getPoint(2), pointSet.getPoint(1), pointSet.getPoint(3))
+    interpolatedPoints.createPoint(params1.c.x, params1.c.y);
+    interpolatedPoints.createPoint(params2.c.x, params2.c.y);
+    // drawSpiral(interpolatedPoints, params1.a, params1.z, params1.c, pointSet.getPoint(0), pointSet.getPoint(1));
+    // drawSpiral(interpolatedPoints, params2.a, params2.z, params2.c, pointSet.getPoint(0), pointSet.getPoint(2));
+    drawSpiralMap(interpolatedPoints, params1.a, params1.z, params2.a, params2.z, params1.c, pointSet.getPoint(0));
+    
+}
 function drawSpiral(p, a, z, F, A, B) {
     // using the parameters, interpolate t from 0 to 1
     // and find the position of A and B 
@@ -179,6 +196,19 @@ function drawSpiral(p, a, z, F, A, B) {
         let Bnew = transform(a,z,F,B,t);
         p.createPoint(Bnew.x, Bnew.y);
         
+    }
+}
+
+function drawSpiralMap(p, a1, z1, a2, z2, F, A) {
+    // using the parameters, interpolate t from 0 to 1
+    // and find the position of A and B 
+    // which is given by the formula Anew = F + z^t * FA * r (at)
+    for(let u = 0 ;u < 1; u+=0.1) {
+        for(let v = 0 ;v < 1; v+=0.1) {
+            let Anew = transform(a1,z1,F,A,u);
+            let Bnew = transform(a2,z2,F,Anew,v);
+            p.createPoint(Bnew.x, Bnew.y);
+        }    
     }
 }
 
